@@ -46,4 +46,15 @@ describe('GW2API', function() {
       });
     });
   });
+  
+  describe('#getAchievementIDs', function() {
+    it('should return an array of ids', function() {
+      const gw2api = new GW2API();
+
+      return gw2api.getAchievementIDs().then(result => {
+        expect(result).to.be.instanceof(Array);
+        expect(result).to.not.be.empty;
+      });
+    });
+  });
 });
