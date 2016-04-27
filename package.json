@@ -29,7 +29,7 @@
     "mocha": "*"
   },
   "dependencies": {
-    "memory-cache": "^0.1.5",
+    "cache-manager": "^2.0.1",
     "request": "^2.72.0",
     "request-promise": "^3.0.0",
     "url": "^0.11.0"
