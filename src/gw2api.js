@@ -45,11 +45,20 @@ class GW2API {
     options.resolveWithFullResponse = true;
 
     return request(options).then(response => {
-      if (response.statusCode !== 200) {
-        throw new Error(`HTTPstatusCode: ${response.statusCode} - ${response.body}`);
+      if (response.statusCode !== 200 && response.statusCode !== 206) {
+        throw new Error(`{ httpStatusCode : ${response.statusCode}, responseBody : ${response.body} }`);
       }
 
-      const data = this._jsonParse(response.body);
+      const data = { 
+        meta: {
+          pageSize: response.headers["X-Page-Size"],
+          pageTotal: response.headers["X-Page-Total"],
+          resultCount: response.headers["X-Result-Count"],
+          resultTotal: response.headers["X-Result-Total"],
+          httpStatus: response.statusCode
+        },
+        data: this._jsonParse(response.body)
+      };
 
       return data;
     });
@@ -88,15 +97,15 @@ class GW2API {
     this.cache.set(`${this.config.lang}#${baseKey}`, object);
   }
 
-  _setCacheObjects(baseKey, ids, objects) {
-    if (isInt(ids))
-      return this._setCacheObject(`${baseKey}#${ids}`, objects);
+  _setCacheObjects(baseKey, objects) {
+    if (!objects instanceof Array)
+      return this._setCacheObject(`${baseKey}#${objects.id}`, objects);
 
     objects.sort((a, b) => {
       return a.id - b.id;
     });
-    for (var i = 0; i < ids.length; i++) {
-      this.cache.set(`${this.config.lang}#${baseKey}#${ids[i]}`, objects[i]);
+    for (var i = 0; i < objects.length; i++) {
+      this._setCacheObject(`${baseKey}#${objects[i].id}`, objects[i]);
     }
   }
 
@@ -136,9 +145,11 @@ class GW2API {
         return cacheResult;
 
       return $this._request(path, params).then((requestResult) => {
-        $this._setCacheObject(cacheKey, requestResult);
+        $this._setCacheObject(cacheKey, requestResult.data);
 
-        return requestResult;
+        return requestResult.data;
+      }, (requestFailure) => {
+        return requestFailure;
       });
     });
   }
@@ -152,47 +163,47 @@ class GW2API {
   _apiDetailsRequest(path, ids) {
     var $this = this;
 
-    if (ids instanceof Array)
+    if (ids instanceof Array) {
       ids = ids.sort((a, b) => {
         return a - b;
       });
+    }
 
     return this._findInCache(path, ids).then((cachedResult) => {
-      var undefinedPositions = [];
+      var objectLookup = {};
+      
       if (cachedResult && cachedResult instanceof Array) {
-        ids = ids.filter((n, i) => {
-          if (cachedResult[i] === undefined) {
-            undefinedPositions.push(i);
-            return true;
-          }
-        });
+        var idsNotInCache = [];
+        for (var i = 0; i < ids.length; i++) {
+            if (cachedResult[i] === undefined) {
+              idsNotInCache.push(ids[i]);
+            } else {
+              objectLookup[ids[i]] = cachedResult[i];
+            }
+        }
+        ids = idsNotInCache;
       }
       else if (cachedResult) {
         return cachedResult;
       }
-
-      if (ids.length > 0) {
-        console.log(JSON.stringify(ids));
-        var params = $this._idListToParams(ids);
-
-        return $this._request(path, params).then((requestResult) => {
-
-          $this._setCacheObjects(path, ids, requestResult);
-
-          if (cachedResult && undefinedPositions) {
-            for (var i = 0; i < undefinedPositions.length; i++) {
-              cachedResult[undefinedPositions[i]] = requestResult[i];
-            }
-            return cachedResult;
-          }
-
-          return requestResult;
-        });
-
-      }
-      else {
+      
+      if (ids.length <= 0)
         return cachedResult;
-      }
+
+      var params = $this._idListToParams(ids);
+
+      return $this._request(path, params).then((requestResult) => {
+        $this._setCacheObjects(path, requestResult.data);
+        
+        for (var i = 0; i < requestResult.data.length; i++) {
+          objectLookup[requestResult.data[i].id] = requestResult.data[i];
+        }
+
+        return Object.keys(objectLookup).map(key => objectLookup[key]);
+      }, (requestFailure) => {
+        return Object.keys(objectLookup).length > 0 ? Object.keys(objectLookup).map(key => objectLookup[key]) : requestFailure;
+      });
+
     });
   }
 
@@ -439,6 +450,8 @@ class GW2API {
 
   /**
    * Returns an Array with all the item IDs
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
    * @return {Promise}
    * @see https://wiki.guildwars2.com/wiki/API:2/items
    */
@@ -457,7 +470,13 @@ class GW2API {
   }
 
 
-
+  /*******************
+   * MAP INFORMATION *
+   *******************/
+   
+   getContinents(continentId, floorId, regionId, mapId) {
+     
+   }
 }
 
 
