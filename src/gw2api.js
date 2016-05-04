@@ -81,7 +81,7 @@ class GW2API {
     if (!ids)
       return this._findInCacheSimple(baseKey);
 
-    if (isInt(ids)) {
+    if (!(ids instanceof Array)) {
       return this.cache.get(`${this.config.lang}#${baseKey}#${ids}`);
     }
 
@@ -98,7 +98,7 @@ class GW2API {
   }
 
   _setCacheObjects(baseKey, objects) {
-    if (!objects instanceof Array)
+    if (!(objects instanceof Array))
       return this._setCacheObject(`${baseKey}#${objects.id}`, objects);
 
     objects.sort((a, b) => {
@@ -116,11 +116,8 @@ class GW2API {
       var idsStr = ids.join(',');
       params.ids = idsStr;
     }
-    else if (isInt(ids)) {
-      params.id = ids;
-    }
     else {
-      throw new Error("ids parameter must be an array of ids or a single id");
+      params.id = ids;
     }
 
     return params;
@@ -134,7 +131,7 @@ class GW2API {
    */
   _apiRequest(path, page, pageSize) {
     var $this = this;
-    var params = {
+    var params = (page instanceof Object) ? page : {
       page: page,
       page_size: pageSize
     };
@@ -182,18 +179,21 @@ class GW2API {
             }
         }
         ids = idsNotInCache;
-      }
-      else if (cachedResult) {
+        
+      } else if (cachedResult) {
         return cachedResult;
       }
       
       if (ids.length <= 0)
         return cachedResult;
-
+      
       var params = $this._idListToParams(ids);
 
       return $this._request(path, params).then((requestResult) => {
         $this._setCacheObjects(path, requestResult.data);
+
+        if (!(requestResult.data instanceof Array))
+          return requestResult.data;
         
         for (var i = 0; i < requestResult.data.length; i++) {
           objectLookup[requestResult.data[i].id] = requestResult.data[i];
@@ -449,14 +449,14 @@ class GW2API {
    *********/
 
   /**
-   * Returns an Array with all the item IDs
+   * Returns an Array with items
    * @param {Number} page Optional. Used for pagination. Page number
    * @param {Number} pageSize Optional. Used for pagination. Page size
    * @return {Promise}
    * @see https://wiki.guildwars2.com/wiki/API:2/items
    */
   listItems(page, pageSize) {
-    return this._apiBasicRequest('items', page, pageSize);
+    return this._apiRequest('items', page, pageSize);
   }
 
   /**
@@ -468,15 +468,461 @@ class GW2API {
   getItems(ids) {
     return this._apiDetailsRequest('items', ids);
   }
+  
+  /**
+   * Returns an Array with materials
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/materials
+   */
+  listMaterials(page, pageSize) {
+    return this._apiRequest('materials', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested material ids
+   * @param  {Number|Array} ids   A single material id or an array of material ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/items
+   */
+  getMaterials(ids) {
+    return this._apiDetailsRequest('materials', ids);
+  }
+  
+  /**
+   * Returns an Array with recipes
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/recipes
+   */
+  listRecipes(page, pageSize) {
+    return this._apiRequest('recipes', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested material ids
+   * @param  {Number|Array} ids   A single material id or an array of material ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/recipes
+   */
+  getRecipes(ids) {
+    return this._apiDetailsRequest('recipes', ids);
+  }
+  
+  
+  
+  /**
+   * Returns an Array with skins
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/skins
+   */
+  listSkins(page, pageSize) {
+    return this._apiRequest('skins', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested skin ids
+   * @param  {Number|Array} ids   A single skin id or an array of skin ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/skins
+   */
+  getSkins(ids) {
+    return this._apiDetailsRequest('skins', ids);
+  }
 
 
   /*******************
    * MAP INFORMATION *
    *******************/
    
-   getContinents(continentId, floorId, regionId, mapId) {
-     
+   /**
+    * Returns a list of continents
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listContinents(page, pageSize) {
+     return this._apiRequest('continents', page, pageSize);
    }
+   
+   /**
+    * Returns a list of floors from a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listFloors(continentId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors`, page, pageSize);
+   }
+   
+   /**
+    * Returns a list of regions from a floor inside a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} floorId The id of a floor of the continent
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listRegions(continentId, floorId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors/${floorId}/regions`, page, pageSize);
+   }
+   
+   /**
+    * Returns a list of maps from aregion inside a floor inside a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} floorId The id of a floor of the continent
+    * @param {Number} regionId The id of a region of the floor
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listMapsFromRegion(continentId, floorId, regionId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors/${floorId}/regions/${regionId}/maps`, page, pageSize);
+   }
+   
+   /**
+    * Returns a list of maps from aregion inside a floor inside a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} floorId The id of a floor of the continent
+    * @param {Number} regionId The id of a region of the floor
+    * @param {Number} mapId The id of a map of the region
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listSectors(continentId, floorId, regionId, mapId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors/${floorId}/regions/${regionId}/maps/${mapId}/sectors`, page, pageSize);
+   }
+   
+   /**
+    * Returns a list of maps from aregion inside a floor inside a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} floorId The id of a floor of the continent
+    * @param {Number} regionId The id of a region of the floor
+    * @param {Number} mapId The id of a map of the region
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listPOIs(continentId, floorId, regionId, mapId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors/${floorId}/regions/${regionId}/maps/${mapId}/pois`, page, pageSize);
+   }
+   
+   /**
+    * Returns a list of maps from aregion inside a floor inside a continent
+    * @param {Number} continentId The id of a continent
+    * @param {Number} floorId The id of a floor of the continent
+    * @param {Number} regionId The id of a region of the floor
+    * @param {Number} mapId The id of a map of the region
+    * @param {Number} page Optional. Used for pagination. Page number
+    * @param {Number} pageSize Optional. Used for pagination. Page sizeid
+    * @return {Promise}
+    * @see https://wiki.guildwars2.com/wiki/API:2/continents
+    */ 
+   listTasks(continentId, floorId, regionId, mapId, page, pageSize) {
+     return this._apiRequest(`continents/${continentId}/floors/${floorId}/regions/${regionId}/maps/${mapId}/tasks`, page, pageSize);
+   }
+   
+   
+   /**************
+   * PVP SEASONS *
+   ***************/
+   
+   /**
+   * Returns an Array with pvp seasons
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/pvp/season
+   */
+  listSeasons(page, pageSize) {
+    return this._apiRequest('pvp/season', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested pvp season ids
+   * @param  {Number|Array} ids   A single pvp season id or an array of pvp season ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/pvp/season
+   */
+  getSeasons(ids) {
+    return this._apiDetailsRequest('pvp/season', ids);
+  }
+  
+   /***************
+   * TRADING POST *
+   ****************/
+   
+   /**
+   * Returns an Array with Trading post buy and sell listings by item
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/listings
+   */
+  listBuySellListings(page, pageSize) {
+    return this._apiRequest('commerce/listings', page, pageSize);
+  }
+
+  /**
+   * Returns the details of buy and sell trading post listings of the requested item ids
+   * @param  {Number|Array} ids   A single item id or an array of item ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/listings
+   */
+  getBuySellListings(ids) {
+    return this._apiDetailsRequest('commerce/listings', ids);
+  }
+  
+  /**
+   * Returns the current coin exchange
+   * @param {Number} quantity Quantity of coins
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/exchange/coins
+   */
+  getCoinExchange(quantity) {
+    return this._apiRequest('exchange/coins', { quantity: quantity });
+  }
+
+  /**
+   * Returns the current gem exchange
+   * @param {Number} quantity Quantity of gems
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/exchange/gems
+   */
+  getGemExchange(quantity) {
+    return this._apiRequest('exchange/gems', { quantity: quantity });
+  }
+  
+  
+  /**
+   * Returns an Array with prices of items
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/prices
+   */
+  listPrices(page, pageSize) {
+    return this._apiRequest('commerce/prices', page, pageSize);
+  }
+
+  /**
+   * Returns the prices of the requested item ids
+   * @param  {Number|Array} ids   A single item id or an array of item ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/commerce/prices
+   */
+  getPrices(ids) {
+    return this._apiDetailsRequest('commerce/prices', ids);
+  }
+  
+  
+  /******
+  * WVW *
+  *******/
+  
+  /**
+   * Returns an Array with WvW matches
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/wvw/matches
+   */
+  listMatches(page, pageSize) {
+    return this._apiRequest('wvw/matches', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested WvW matches ids
+   * @param  {Number|Array} ids   A single WvW matches id or an array of WvW matches ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/wvw/matches
+   */
+  getMatches(ids) {
+    return this._apiDetailsRequest('wvw/matches', ids);
+  }
+  
+  /**
+   * Returns the details of the match a world is currently in
+   * @param  {Number|Array} ids   A single world id
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/wvw/matches
+   */
+  getMatchByWorld(worldId) {
+    return this._apiRequest('wvw/matches', { world: worldId });
+  }
+  
+  /**
+   * Returns an Array with WvW objectives
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/wvw/objectives
+   */
+  listObjectives(page, pageSize) {
+    return this._apiRequest('wvw/objectives', page, pageSize);
+  }
+
+  /**
+   * Returns the details of the requested WvW objective ids
+   * @param  {Number|Array} ids   A single WvW objective id or an array of WvW objective ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/wvw/objectives
+   */
+  getObjectives(ids) {
+    return this._apiDetailsRequest('wvw/objectives', ids);
+  }
+  
+  /***************
+  * MISCELANEOUS *
+  ****************/
+  
+  /**
+   * Returns the current build number
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/build
+   */
+  getCurrentBuild() {
+    return this._apiRequest('build');
+  }
+  
+  /**
+   * Returns an Array with colors
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/colors
+   */
+  listColors(page, pageSize) {
+    return this._apiRequest('colors', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested color ids
+   * @param  {Number|Array} ids   A single color id or an array of color ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/colors
+   */
+  getColors(ids) {
+     return this._apiDetailsRequest('colors', ids);
+  }
+  
+  /**
+   * Returns an Array with currencies
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/currencies
+   */
+  listCurrencies(page, pageSize) {
+    return this._apiRequest('currencies', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested currency ids
+   * @param  {Number|Array} ids   A single currency id or an array of currency ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/currencies
+   */
+  getCurrencies(ids) {
+     return this._apiDetailsRequest('currencies', ids);
+  }
+  
+  /**
+   * Returns an Array with files
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/files
+   */
+  listFiles(page, pageSize) {
+    return this._apiRequest('files', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested file ids
+   * @param  {String|Array} ids   A single file id or an array of file ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/files
+   */
+  getFiles(ids) {
+     return this._apiDetailsRequest('files', ids);
+  }
+  
+  /**
+   * Returns an Array with quaggans
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/quaggans
+   */
+  listQuaggans(page, pageSize) {
+    return this._apiRequest('quaggans', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested quaggan ids
+   * @param  {String|Array} ids   A single quaggan id or an array of quaggan ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/quaggans
+   */
+  getQuaggans(ids) {
+     return this._apiDetailsRequest('quaggans', ids);
+  }
+  
+  /**
+   * Returns an Array with minis
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/minis
+   */
+  listMinis(page, pageSize) {
+    return this._apiRequest('minis', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested mini ids
+   * @param  {String|Array} ids   A single mini id or an array of mini ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/minis
+   */
+  getMinis(ids) {
+     return this._apiDetailsRequest('minis', ids);
+  }
+  
+  /**
+   * Returns an Array with worlds
+   * @param {Number} page Optional. Used for pagination. Page number
+   * @param {Number} pageSize Optional. Used for pagination. Page size
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/worlds
+   */
+  listWorlds(page, pageSize) {
+    return this._apiRequest('worlds', page, pageSize);
+  }
+  
+  /**
+   * Returns the details of the requested world ids
+   * @param  {String|Array} ids   A single world id or an array of world ids to get details
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/worlds
+   */
+  getWorlds(ids) {
+     return this._apiDetailsRequest('worlds', ids);
+  }
+  
 }
 
 
