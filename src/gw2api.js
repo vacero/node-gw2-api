@@ -502,8 +502,8 @@ class GW2API {
   }
 
   /**
-   * Returns the details of the requested material ids
-   * @param  {Number|Array} ids   A single material id or an array of material ids to get details
+   * Returns the details of the requested recipe ids
+   * @param  {Number|Array} ids   A single recipe id or an array of recipe ids to get details
    * @return {Promise}
    * @see https://wiki.guildwars2.com/wiki/API:2/recipes
    */
@@ -511,7 +511,18 @@ class GW2API {
     return this._apiDetailsRequest('recipes', ids);
   }
   
-  
+  /**
+   * Returns a list of recipe ids (array of numbers) that match the query.
+   * Input and output parameters are mutually exclusive.
+   * @param  {Object} query
+   * @param  {Number} [query.input]  The item id when searching for recipes with an item as an ingredient.
+   * @param  {Number} [query.output] The item id when searching for the recipes that craft an item.
+   * @return {Promise}
+   * @see https://wiki.guildwars2.com/wiki/API:2/recipes/search
+   */
+  searchRecipes(query) {
+    return this._apiRequest('recipes/search', query);
+  }
   
   /**
    * Returns an Array with skins
