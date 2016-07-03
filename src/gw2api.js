@@ -1102,7 +1102,7 @@ class GW2API {
    * @see https://wiki.guildwars2.com/wiki/API:2/commerce/exchange/coins
    */
   getCoinExchange(quantity) {
-    return this._apiRequest('exchange/coins', {
+    return this._apiRequest('commerce/exchange/coins', {
       quantity: quantity
     });
   }
@@ -1114,7 +1114,7 @@ class GW2API {
    * @see https://wiki.guildwars2.com/wiki/API:2/commerce/exchange/gems
    */
   getGemExchange(quantity) {
-    return this._apiRequest('exchange/gems', {
+    return this._apiRequest('commerce/exchange/gems', {
       quantity: quantity
     });
   }
